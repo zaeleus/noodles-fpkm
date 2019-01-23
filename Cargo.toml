@@ -1,0 +1,13 @@
+[package]
+name = "noodles-fpkm"
+version = "0.1.0"
+authors = ["Michael Macias <zaeleus@gmail.com>"]
+edition = "2018"
+license = "MIT"
+
+[dependencies]
+clap = "2.32.0"
+csv = "1.0.5"
+env_logger = "0.6.0"
+log = "0.4.6"
+noodles = { git = "https://github.com/zaeleus/noodles.git" }
