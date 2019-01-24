@@ -1,4 +1,7 @@
-use std::{collections::HashMap, io::{self, Read}};
+use std::{
+    collections::hash_map::{Entry, HashMap},
+    io::{self, Read},
+};
 
 use csv::StringRecord;
 
@@ -15,7 +18,7 @@ pub fn read_counts<R>(reader: R) -> io::Result<Counts> where R: Read {
         .delimiter(b'\t')
         .from_reader(reader);
 
-    let mut counts = HashMap::new();
+    let mut counts = Counts::new();
 
     for result in rdr.records() {
         let record = result?;
@@ -28,7 +31,7 @@ pub fn read_counts<R>(reader: R) -> io::Result<Counts> where R: Read {
 
         let count = parse_count(&record)?;
 
-        counts.insert(name.to_string(), count);
+        insert_count(&mut counts, name, count)?;
     }
 
     Ok(counts)
@@ -54,6 +57,18 @@ fn parse_count(record: &StringRecord) -> io::Result<u64> {
             format!("invalid count: {:?}", cell),
         )
     })
+}
+
+fn insert_count<'a>(counts: &'a mut Counts, name: &str, count: u64) -> io::Result<&'a mut u64> {
+    match counts.entry(name.to_string()) {
+        Entry::Vacant(e) => Ok(e.insert(count)),
+        Entry::Occupied(_) => {
+            Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("duplicate identifier '{}'", name),
+            ))
+        },
+    }
 }
 
 pub fn sum_counts(counts: &Counts) -> u64 {
@@ -84,6 +99,19 @@ __no_feature\t136550
     }
 
     #[test]
+    fn test_read_counts_with_duplicate_identifiers() {
+        let data = "\
+AAAS\t645
+AC009952.3\t1
+AC009952.3\t0
+RPL37AP1\t5714
+__no_feature\t136550
+";
+
+        assert!(read_counts(data.as_bytes()).is_err());
+    }
+
+    #[test]
     fn test_parse_name() {
         let record = StringRecord::from(vec!["AAAS", "645"]);
         assert_eq!(parse_name(&record).unwrap(), "AAAS");
@@ -99,6 +127,16 @@ __no_feature\t136550
 
         let record = StringRecord::from(vec!["AAAS", "x"]);
         assert!(parse_count(&record).is_err());
+    }
+
+    #[test]
+    fn test_insert_count() {
+        let mut counts = Counts::new();
+
+        assert!(insert_count(&mut counts, "AAAS", 645).is_ok());
+        assert_eq!(counts["AAAS"], 645);
+
+        assert!(insert_count(&mut counts, "AAAS", 0).is_err());
     }
 
     #[test]
