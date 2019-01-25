@@ -60,7 +60,7 @@ fn main() {
     let counts_sum = sum_counts(&counts) as f64;
     let scaling_factor = counts_sum / 1_000_000.0;
 
-    let fpkms = calculate_fpkms(&counts, &features, scaling_factor);
+    let fpkms = calculate_fpkms(&counts, &features, scaling_factor).unwrap();
 
     for (name, fpkm) in fpkms {
         println!("{}\t{}", name, fpkm);
