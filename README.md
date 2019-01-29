@@ -53,7 +53,7 @@ Use [noodles-count-features] or [htseq-count] to create a table of feature
 counts.
 
 ```
-$ noodles-count-features
+$ noodles-count-features \
   --annotations annotations.gtf \
   --type gene \
   --id gene_name \
