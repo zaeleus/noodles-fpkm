@@ -22,23 +22,22 @@ impl Feature {
         Feature { start, end }
     }
 
+    /// Returns the size of the feature's interval.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use noodles_fpkm::features::Feature;
+    ///
+    /// assert_eq!(Feature::new(2, 5).len(), 4);
+    /// assert_eq!(Feature::new(3, 4).len(), 2);
+    /// assert_eq!(Feature::new(5, 7).len(), 3);
+    /// assert_eq!(Feature::new(9, 12).len(), 4);
+    /// assert_eq!(Feature::new(10, 15).len(), 6);
+    /// assert_eq!(Feature::new(19, 21).len(), 3);
+    /// ```
     pub fn len(&self) -> u64 {
         self.end - self.start + 1
-    }
-}
-
-#[cfg(test)]
-mod feature_tests {
-    use super::Feature;
-
-    #[test]
-    fn test_len() {
-        assert_eq!(Feature::new(2, 5).len(), 4);
-        assert_eq!(Feature::new(3, 4).len(), 2);
-        assert_eq!(Feature::new(5, 7).len(), 3);
-        assert_eq!(Feature::new(9, 12).len(), 4);
-        assert_eq!(Feature::new(10, 15).len(), 6);
-        assert_eq!(Feature::new(19, 21).len(), 3);
     }
 }
 
@@ -97,6 +96,35 @@ pub fn merge_intervals(intervals: &[Feature]) -> Vec<Feature> {
     merged_intervals
 }
 
+
+/// Builds a map of feature ID-feature vector pairs from a GTF/GFFv2.
+///
+/// The [GTF/GFFv2] is filtered by `feature_type` (column 3), using
+/// `feature_id` as the key for the map from the feature attributes
+/// (column 9).
+///
+/// [GTF/GFFv2]: https://useast.ensembl.org/info/website/upload/gff.html
+///
+/// # Example
+///
+/// ```
+/// use noodles_fpkm::features::{read_features, Feature};
+///
+/// let features = read_features(
+///     "test/fixtures/annotations.gtf",
+///     "exon",
+///     "gene_name",
+/// ).unwrap();
+///
+/// assert_eq!(features.len(), 2);
+///
+/// assert_eq!(
+///     &features["DDX11L1"],
+///     &[Feature::new(11869, 12227), Feature::new(12613, 12721)],
+/// );
+///
+/// assert_eq!(&features["NECAP2"], &[Feature::new(16440672, 16440853)]);
+/// ```
 pub fn read_features<P>(src: P, feature_type: &str, feature_id: &str) -> io::Result<Features>
 where
     P: AsRef<Path>,
@@ -174,24 +202,6 @@ mod tests {
     use csv::StringRecord;
 
     use super::*;
-
-    #[test]
-    fn test_read_features() {
-        let features = read_features(
-            "test/fixtures/annotations.gtf",
-            "exon",
-            "gene_name",
-        ).unwrap();
-
-        assert_eq!(features.len(), 2);
-
-        assert_eq!(
-            &features["DDX11L1"],
-            &[Feature::new(11869, 12227), Feature::new(12613, 12721)],
-        );
-
-        assert_eq!(&features["NECAP2"], &[Feature::new(16440672, 16440853)]);
-    }
 
     fn build_record() -> StringRecord {
         StringRecord::from(vec![

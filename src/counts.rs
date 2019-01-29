@@ -12,6 +12,30 @@ static HTSEQ_COUNT_META_PREFIX: &str = "__";
 
 pub type Counts = HashMap<String, u64>;
 
+/// Reads TSV-formatted data and returns a map of feature ID-count pairs.
+///
+/// The input is TSV-formatted with two columns: a feature identifier (string)
+/// and a count (integer).
+///
+/// # Example
+///
+/// ```
+/// use noodles_fpkm::counts::read_counts;
+///
+/// let data = "\
+/// AAAS\t645
+/// AC009952.3\t1
+/// RPL37AP1\t5714
+/// __no_feature\t136550
+/// ";
+///
+/// let counts = read_counts(data.as_bytes()).unwrap();
+///
+/// assert_eq!(counts.len(), 3);
+/// assert_eq!(counts["AAAS"], 645);
+/// assert_eq!(counts["AC009952.3"], 1);
+/// assert_eq!(counts["RPL37AP1"], 5714);
+/// ```
 pub fn read_counts<R>(reader: R) -> io::Result<Counts> where R: Read {
     let mut rdr = csv::ReaderBuilder::new()
         .has_headers(false)
@@ -71,6 +95,21 @@ fn insert_count<'a>(counts: &'a mut Counts, name: &str, count: u64) -> io::Resul
     }
 }
 
+/// Sums the counts from a `Count` map.
+///
+/// # Example
+///
+/// ```
+/// use noodles_fpkm::counts::sum_counts;
+///
+/// let counts = [
+///     (String::from("AAAS"), 645),
+///     (String::from("AC009952.3"), 1),
+///     (String::from("RPL37AP1"), 5714),
+/// ].iter().cloned().collect();
+///
+/// assert_eq!(sum_counts(&counts), 6360);
+/// ```
 pub fn sum_counts(counts: &Counts) -> u64 {
     counts.values().sum()
 }
@@ -80,23 +119,6 @@ mod tests {
     use csv::StringRecord;
 
     use super::*;
-
-    #[test]
-    fn test_read_counts() {
-        let data = "\
-AAAS\t645
-AC009952.3\t1
-RPL37AP1\t5714
-__no_feature\t136550
-";
-
-        let counts = read_counts(data.as_bytes()).unwrap();
-
-        assert_eq!(counts.len(), 3);
-        assert_eq!(counts["AAAS"], 645);
-        assert_eq!(counts["AC009952.3"], 1);
-        assert_eq!(counts["RPL37AP1"], 5714);
-    }
 
     #[test]
     fn test_read_counts_with_duplicate_identifiers() {
@@ -137,16 +159,5 @@ __no_feature\t136550
         assert_eq!(counts["AAAS"], 645);
 
         assert!(insert_count(&mut counts, "AAAS", 0).is_err());
-    }
-
-    #[test]
-    fn test_sum_counts() {
-        let counts = [
-            (String::from("AAAS"), 645),
-            (String::from("AC009952.3"), 1),
-            (String::from("RPL37AP1"), 5714),
-        ].iter().cloned().collect();
-
-        assert_eq!(sum_counts(&counts), 6360);
     }
 }
