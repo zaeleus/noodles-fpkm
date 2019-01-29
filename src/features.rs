@@ -42,6 +42,36 @@ mod feature_tests {
     }
 }
 
+/// Merges a list of overlapping intervals into a list of non-overlapping intervals.
+///
+/// The intervals are assumed to be inclusive.
+///
+/// # Panics
+///
+/// Panics when the input list of intervals is empty.
+///
+/// # Example
+///
+/// Given the list of intervals [2, 5], [3, 4], [5, 7], [9, 12], [10, 15], and
+/// [16, 21], the following overlap and are combined into single intervals.
+///
+///
+///   * [2, 5], [3, 4], [5, 7] => [2, 7]
+///   * [9, 12], [10, 15] => [9, 15]
+///   * [16, 21] => [16, 21]
+///
+/// ```
+/// use noodles_fpkm::features::{merge_intervals, Feature};
+///
+/// let features = [
+///     Feature::new(2, 5), Feature::new(3, 4), Feature::new(5, 7),
+///     Feature::new(9, 12), Feature::new(10, 15), Feature::new(16, 21),
+/// ];
+///
+/// let actual = merge_intervals(&features);
+/// let expected = [Feature::new(2, 7), Feature::new(9, 15), Feature::new(16, 21)];
+/// assert_eq!(actual, expected);
+/// ```
 pub fn merge_intervals(intervals: &[Feature]) -> Vec<Feature> {
     assert!(!intervals.is_empty());
 
@@ -144,28 +174,6 @@ mod tests {
     use csv::StringRecord;
 
     use super::*;
-
-    #[test]
-    fn test_merge_intervals() {
-        let features = [
-            Feature::new(2, 5),
-            Feature::new(3, 4),
-            Feature::new(5, 7),
-            Feature::new(9, 12),
-            Feature::new(10, 15),
-            Feature::new(16, 21),
-        ];
-
-        let actual = merge_intervals(&features);
-
-        let expected = [
-            Feature::new(2, 7),
-            Feature::new(9, 15),
-            Feature::new(16, 21),
-        ];
-
-        assert_eq!(actual, expected);
-    }
 
     #[test]
     fn test_read_features() {
