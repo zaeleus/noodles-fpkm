@@ -96,6 +96,21 @@ mod tests {
     }
 
     #[test]
+    fn test_calculate_fpkms_is_ordered_by_feature_id() {
+        let counts = build_counts();
+        let features = build_features();
+        let scaling_factor = 6360.0 / 1_000_000.0;
+
+        let fpkms = calculate_fpkms(&counts, &features, scaling_factor).unwrap();
+        let mut ids = fpkms.keys();
+
+        assert_eq!(ids.next().unwrap(), "AAAS");
+        assert_eq!(ids.next().unwrap(), "AC009952.3");
+        assert_eq!(ids.next().unwrap(), "RPL37AP1");
+        assert!(ids.next().is_none());
+    }
+
+    #[test]
     fn test_calculate_fpkms_with_missing_feature() {
         let counts = build_counts();
 
