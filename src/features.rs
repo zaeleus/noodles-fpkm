@@ -3,7 +3,7 @@ use std::{collections::HashMap, io, path::Path};
 use csv::StringRecord;
 use noodles::formats::gff;
 
-const GFF_GENE_INDEX: usize = 2;
+const GFF_FEATURE_INDEX: usize = 2;
 const GFF_START_INDEX: usize = 3;
 const GFF_END_INDEX: usize = 4;
 const GFF_ATTRS_INDEX: usize = 8;
@@ -135,7 +135,7 @@ where
     for result in reader.records() {
         let record = result?;
 
-        let ty = &record[GFF_GENE_INDEX];
+        let ty = parse_feature(&record)?;
 
         if ty != feature_type {
             continue;
@@ -151,6 +151,17 @@ where
     }
 
     Ok(features)
+}
+
+fn parse_feature(record: &StringRecord) -> io::Result<&str> {
+    let cell = record.get(GFF_FEATURE_INDEX);
+
+    cell.ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("invalid feature: {:?}", cell),
+        )
+    })
 }
 
 fn parse_start(record: &StringRecord) -> io::Result<u64> {
@@ -215,6 +226,12 @@ mod tests {
            ".",
            r#"gene_id "ENSG00000223972.5"; gene_type "transcribed_unprocessed_pseudogene"; gene_name "DDX11L1"; level 2; havana_gene "OTTHUMG00000000961.2";"#
         ])
+    }
+
+    #[test]
+    fn test_parse_feature() {
+        let record = build_record();
+        assert_eq!(parse_feature(&record).unwrap(), "gene");
     }
 
     #[test]
