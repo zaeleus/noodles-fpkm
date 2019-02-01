@@ -1,12 +1,6 @@
 use std::{collections::HashMap, io, path::Path};
 
-use csv::StringRecord;
 use noodles::formats::gff;
-
-const GFF_FEATURE_INDEX: usize = 2;
-const GFF_START_INDEX: usize = 3;
-const GFF_END_INDEX: usize = 4;
-const GFF_ATTRS_INDEX: usize = 8;
 
 pub type Features = HashMap<String, Vec<Feature>>;
 
@@ -133,17 +127,25 @@ where
     let mut features: Features = HashMap::new();
 
     for result in reader.records() {
-        let record = result?;
+        let row = result?;
+        let record = gff::Record::new(row);
 
-        let ty = parse_feature(&record)?;
+        let ty = record.feature().map_err(invalid_data)?;
 
         if ty != feature_type {
             continue;
         }
 
-        let start = parse_start(&record)?;
-        let end = parse_end(&record)?;
-        let id = parse_attrs_and_get(&record, feature_id)?;
+        let start = record.start().map_err(invalid_data)?;
+        let end = record.end().map_err(invalid_data)?;
+
+        let attributes = record.attributes().map_err(invalid_data)?;
+        let id = attributes.get(feature_id).ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("missing attribute '{}'", feature_id),
+            )
+        })?;
 
         let list = features.entry(id.to_string()).or_default();
         let feature = Feature::new(start, end);
@@ -153,109 +155,6 @@ where
     Ok(features)
 }
 
-fn parse_feature(record: &StringRecord) -> io::Result<&str> {
-    let cell = record.get(GFF_FEATURE_INDEX);
-
-    cell.ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidInput,
-            format!("invalid feature: {:?}", cell),
-        )
-    })
-}
-
-fn parse_start(record: &StringRecord) -> io::Result<u64> {
-    let cell = record.get(GFF_START_INDEX);
-
-    cell.and_then(|s| s.parse().ok()).ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidInput,
-            format!("invalid start: {:?}", cell),
-        )
-    })
-}
-
-fn parse_end(record: &StringRecord) -> io::Result<u64> {
-    let cell = record.get(GFF_END_INDEX);
-
-    cell.and_then(|s| s.parse().ok()).ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidInput,
-            format!("invalid end: {:?}", cell),
-        )
-    })
-}
-
-fn parse_attrs_and_get<'a>(record: &'a StringRecord, key: &str) -> io::Result<&'a str> {
-    let attrs = record
-        .get(GFF_ATTRS_INDEX)
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "invalid attrs"))?;
-
-    for attr in attrs.split(';').map(str::trim_left) {
-        if attr.starts_with(key) {
-            return attr.split('"').nth(1).ok_or_else(|| {
-                io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    format!("could not parse attribute '{}'", attr),
-                )
-            });
-        }
-    }
-
-    Err(io::Error::new(
-        io::ErrorKind::InvalidInput,
-        format!("missing attribute '{}'", key),
-    ))
-}
-
-#[cfg(test)]
-mod tests {
-    use csv::StringRecord;
-
-    use super::*;
-
-    fn build_record() -> StringRecord {
-        StringRecord::from(vec![
-           "chr1",
-           "HAVANA",
-           "gene",
-           "11869",
-           "14409",
-           ".",
-           "+",
-           ".",
-           r#"gene_id "ENSG00000223972.5"; gene_type "transcribed_unprocessed_pseudogene"; gene_name "DDX11L1"; level 2; havana_gene "OTTHUMG00000000961.2";"#
-        ])
-    }
-
-    #[test]
-    fn test_parse_feature() {
-        let record = build_record();
-        assert_eq!(parse_feature(&record).unwrap(), "gene");
-    }
-
-    #[test]
-    fn test_parse_start() {
-        let record = build_record();
-        assert_eq!(parse_start(&record).unwrap(), 11869);
-    }
-
-    #[test]
-    fn test_parse_end() {
-        let record = build_record();
-        assert_eq!(parse_end(&record).unwrap(), 14409);
-    }
-
-    #[test]
-    fn test_parse_attrs_and_get() {
-        let record = build_record();
-
-        assert_eq!(parse_attrs_and_get(&record, "gene_id").unwrap(), "ENSG00000223972.5");
-        assert_eq!(parse_attrs_and_get(&record, "gene_type").unwrap(), "transcribed_unprocessed_pseudogene");
-        assert_eq!(parse_attrs_and_get(&record, "gene_name").unwrap(), "DDX11L1");
-        assert_eq!(parse_attrs_and_get(&record, "havana_gene").unwrap(), "OTTHUMG00000000961.2");
-
-        assert!(parse_attrs_and_get(&record, "level").is_err());
-        assert!(parse_attrs_and_get(&record, "dne").is_err());
-    }
+fn invalid_data(e: gff::record::Error) -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidData, e)
 }
