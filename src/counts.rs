@@ -17,6 +17,12 @@ pub type Counts = HashMap<String, u64>;
 /// The input is TSV-formatted with two columns: a feature identifier (string)
 /// and a count (integer).
 ///
+/// Reading stops at EOF or the first identifier that starts with "__". This
+/// prefix is considered to be a special counter or extra metadata, as defined
+/// by [htseq-count] > 0.5.4.
+///
+/// [htseq-count]: https://htseq.readthedocs.io/en/release_0.11.1/count.html#usage
+///
 /// # Example
 ///
 /// ```
