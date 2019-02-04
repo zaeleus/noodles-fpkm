@@ -13,11 +13,13 @@ pub enum Error {
     MissingFeature(String),
 }
 
+pub type Fpkms = BTreeMap<String, f64>;
+
 pub fn calculate_fpkms(
     counts: &Counts,
     features: &Features,
     scaling_factor: f64,
-) -> Result<BTreeMap<String, f64>, Error> {
+) -> Result<Fpkms, Error> {
     counts
         .iter()
         .map(|(name, &count)| {
