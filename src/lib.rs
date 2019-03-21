@@ -4,7 +4,7 @@ pub mod features;
 use std::collections::BTreeMap;
 
 use self::{
-    counts::Counts,
+    counts::{sum_counts, Counts},
     features::{merge_intervals, Feature, Features},
 };
 
@@ -15,11 +15,9 @@ pub enum Error {
 
 pub type Fpkms = BTreeMap<String, f64>;
 
-pub fn calculate_fpkms(
-    counts: &Counts,
-    features: &Features,
-    scaling_factor: f64,
-) -> Result<Fpkms, Error> {
+pub fn calculate_fpkms(counts: &Counts, features: &Features) -> Result<Fpkms, Error> {
+    let counts_sum = sum_counts(counts);
+
     counts
         .iter()
         .map(|(name, &count)| {
@@ -27,7 +25,7 @@ pub fn calculate_fpkms(
                 .get(name)
                 .map(|intervals| {
                     let len = sum_nonoverlapping_interval_lengths(intervals);
-                    let fpkm = calculate_fpkm(count, len, scaling_factor);
+                    let fpkm = calculate_fpkm(count, len, counts_sum);
                     (name.clone(), fpkm)
                 })
                 .ok_or_else(|| Error::MissingFeature(name.clone()))
@@ -39,11 +37,9 @@ fn sum_nonoverlapping_interval_lengths(intervals: &[Feature]) -> u64 {
     merge_intervals(intervals).iter().map(|i| i.len()).sum()
 }
 
-// See <https://statquest.org/2015/07/09/rpkm-fpkm-and-tpm-clearly-explained/>.
-fn calculate_fpkm(count: u64, len: u64, scaling_factor: f64) -> f64 {
-    let rpm = (count as f64) / scaling_factor;
-    let len_kb = (len as f64) / 1000.0;
-    rpm / len_kb
+// See <https://haroldpimentel.wordpress.com/2014/05/08/what-the-fpkm-a-review-rna-seq-expression-units/>.
+fn calculate_fpkm(count: u64, len: u64, counts_sum: u64) -> f64 {
+    (count as f64 * 1e9) / (len as f64 * counts_sum as f64)
 }
 
 #[cfg(test)]
@@ -87,22 +83,21 @@ mod tests {
     fn test_calculate_fpkms() {
         let counts = build_counts();
         let features = build_features();
-        let scaling_factor = 6360.0 / 1_000_000.0;
 
-        let fpkms = calculate_fpkms(&counts, &features, scaling_factor).unwrap();
+        let fpkms = calculate_fpkms(&counts, &features).unwrap();
 
         assert_eq!(fpkms.len(), 3);
 
-        let a = 5825.440538780093;
-        let b = fpkms["AAAS"];
+        let a = fpkms["AAAS"];
+        let b = 5825.440538780093;
         assert!((a - b).abs() < EPSILON);
 
-        let a = 10.494073576888187;
-        let b = fpkms["AC009952.3"];
+        let a = fpkms["AC009952.3"];
+        let b = 10.494073576888189;
         assert!((a - b).abs() < EPSILON);
 
-        let a = 3220170.8708099453;
-        let b = fpkms["RPL37AP1"];
+        let a = fpkms["RPL37AP1"];
+        let b = 3220170.8708099457;
         assert!((a - b).abs() < EPSILON);
     }
 
@@ -110,9 +105,8 @@ mod tests {
     fn test_calculate_fpkms_is_ordered_by_feature_id() {
         let counts = build_counts();
         let features = build_features();
-        let scaling_factor = 6360.0 / 1_000_000.0;
 
-        let fpkms = calculate_fpkms(&counts, &features, scaling_factor).unwrap();
+        let fpkms = calculate_fpkms(&counts, &features).unwrap();
         let mut ids = fpkms.keys();
 
         assert_eq!(ids.next().unwrap(), "AAAS");
@@ -128,9 +122,7 @@ mod tests {
         let mut features = build_features();
         features.remove("AC009952.3");
 
-        let scaling_factor = 6360.0 / 1_000_000.0;
-
-        assert!(calculate_fpkms(&counts, &features, scaling_factor).is_err());
+        assert!(calculate_fpkms(&counts, &features).is_err());
     }
 
     #[test]
@@ -150,12 +142,12 @@ mod tests {
 
     #[test]
     fn test_calculate_fpkm() {
-        let a = calculate_fpkm(2, 10, 2.0);
-        let b = 100.0;
+        let a = calculate_fpkm(2, 10, 212);
+        let b = 943396.2264150943;
         assert!((a - b).abs() < EPSILON);
 
-        let a = calculate_fpkm(2, 4364, 10.382334);
-        let b = 0.04414182225995562;
+        let a = calculate_fpkm(5, 138756, 600081);
+        let b = 0.06004935631747696;
         assert!((a - b).abs() < EPSILON);
     }
 }

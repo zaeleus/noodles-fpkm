@@ -5,12 +5,7 @@ use std::{
 
 use clap::{crate_name, crate_version, App, Arg};
 use log::LevelFilter;
-use noodles_fpkm::{
-    calculate_fpkms,
-    counts::{read_counts, sum_counts},
-    features::read_features,
-    Fpkms,
-};
+use noodles_fpkm::{calculate_fpkms, counts::read_counts, features::read_features, Fpkms};
 
 fn write_fpkms<W>(mut writer: W, fpkms: &Fpkms) -> io::Result<()>
 where
@@ -82,10 +77,7 @@ fn main() {
     let file = File::open(&counts_src).unwrap();
     let counts = read_counts(file).unwrap();
 
-    let counts_sum = sum_counts(&counts) as f64;
-    let scaling_factor = counts_sum / 1_000_000.0;
-
-    let fpkms = calculate_fpkms(&counts, &features, scaling_factor).unwrap();
+    let fpkms = calculate_fpkms(&counts, &features).unwrap();
 
     let stdout = io::stdout();
     let handle = stdout.lock();
