@@ -1,4 +1,7 @@
-use std::{fs::File, io::{self, Write}};
+use std::{
+    fs::File,
+    io::{self, Write},
+};
 
 use clap::{crate_name, crate_version, App, Arg};
 use log::LevelFilter;
@@ -9,7 +12,10 @@ use noodles_fpkm::{
     Fpkms,
 };
 
-fn write_fpkms<W>(mut writer: W, fpkms: &Fpkms) -> io::Result<()> where W: Write {
+fn write_fpkms<W>(mut writer: W, fpkms: &Fpkms) -> io::Result<()>
+where
+    W: Write,
+{
     for (id, fpkm) in fpkms {
         writeln!(writer, "{}\t{}", id, fpkm)?;
     }
@@ -20,32 +26,42 @@ fn write_fpkms<W>(mut writer: W, fpkms: &Fpkms) -> io::Result<()> where W: Write
 fn main() {
     let matches = App::new(crate_name!())
         .version(crate_version!())
-        .arg(Arg::with_name("verbose")
-             .short("v")
-             .long("verbose")
-             .help("Use verbose logging"))
-        .arg(Arg::with_name("feature-type")
-             .short("t")
-             .long("type")
-             .value_name("str")
-             .help("Feature type to count")
-             .default_value("exon"))
-        .arg(Arg::with_name("feature-id")
-             .short("i")
-             .long("id")
-             .value_name("str")
-             .help("Feature attribute to use as the feature identity")
-             .default_value("gene_id"))
-        .arg(Arg::with_name("annotations")
-             .short("a")
-             .long("annotations")
-             .value_name("file")
-             .help("Input annotations file (GTF/GFFv2)")
-             .required(true))
-        .arg(Arg::with_name("counts")
-             .help("Input feature counts")
-             .required(true)
-             .index(1))
+        .arg(
+            Arg::with_name("verbose")
+                .short("v")
+                .long("verbose")
+                .help("Use verbose logging"),
+        )
+        .arg(
+            Arg::with_name("feature-type")
+                .short("t")
+                .long("type")
+                .value_name("str")
+                .help("Feature type to count")
+                .default_value("exon"),
+        )
+        .arg(
+            Arg::with_name("feature-id")
+                .short("i")
+                .long("id")
+                .value_name("str")
+                .help("Feature attribute to use as the feature identity")
+                .default_value("gene_id"),
+        )
+        .arg(
+            Arg::with_name("annotations")
+                .short("a")
+                .long("annotations")
+                .value_name("file")
+                .help("Input annotations file (GTF/GFFv2)")
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("counts")
+                .help("Input feature counts")
+                .required(true)
+                .index(1),
+        )
         .get_matches();
 
     if matches.is_present("verbose") {
@@ -87,7 +103,10 @@ mod tests {
             (String::from("AC009952.3"), 10.494073576888187),
             (String::from("RPL37AP1"), 3220170.8708099453),
             (String::from("ZNF700"), 0.0),
-        ].iter().cloned().collect();
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
         let mut buf = Vec::new();
         write_fpkms(&mut buf, &fpkms).unwrap();

@@ -90,7 +90,6 @@ pub fn merge_intervals(intervals: &[Feature]) -> Vec<Feature> {
     merged_intervals
 }
 
-
 /// Builds a map of feature ID-feature vector pairs from a GTF/GFFv2.
 ///
 /// The [GTF/GFFv2] is filtered by `feature_type` (column 3), using

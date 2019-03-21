@@ -42,7 +42,10 @@ pub type Counts = HashMap<String, u64>;
 /// assert_eq!(counts["AC009952.3"], 1);
 /// assert_eq!(counts["RPL37AP1"], 5714);
 /// ```
-pub fn read_counts<R>(reader: R) -> io::Result<Counts> where R: Read {
+pub fn read_counts<R>(reader: R) -> io::Result<Counts>
+where
+    R: Read,
+{
     let mut rdr = csv::ReaderBuilder::new()
         .has_headers(false)
         .delimiter(b'\t')
@@ -92,12 +95,10 @@ fn parse_count(record: &StringRecord) -> io::Result<u64> {
 fn insert_count<'a>(counts: &'a mut Counts, name: &str, count: u64) -> io::Result<&'a mut u64> {
     match counts.entry(name.to_string()) {
         Entry::Vacant(e) => Ok(e.insert(count)),
-        Entry::Occupied(_) => {
-            Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!("duplicate identifier '{}'", name),
-            ))
-        },
+        Entry::Occupied(_) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("duplicate identifier '{}'", name),
+        )),
     }
 }
 

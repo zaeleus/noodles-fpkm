@@ -50,7 +50,10 @@ fn calculate_fpkm(count: u64, len: u64, scaling_factor: f64) -> f64 {
 mod tests {
     use std::f64::EPSILON;
 
-    use crate::{counts::Counts, features::{Feature, Features}};
+    use crate::{
+        counts::Counts,
+        features::{Feature, Features},
+    };
 
     use super::*;
 
@@ -67,8 +70,14 @@ mod tests {
     fn build_features() -> Features {
         let features = [
             (String::from("AAAS"), vec![Feature::new(53307456, 53324864)]),
-            (String::from("AC009952.3"), vec![Feature::new(9189629, 9204611)]),
-            (String::from("RPL37AP1"), vec![Feature::new(44466564, 44466842)]),
+            (
+                String::from("AC009952.3"),
+                vec![Feature::new(9189629, 9204611)],
+            ),
+            (
+                String::from("RPL37AP1"),
+                vec![Feature::new(44466564, 44466842)],
+            ),
         ];
 
         features.into_iter().cloned().collect()
