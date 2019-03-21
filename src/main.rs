@@ -5,14 +5,16 @@ use std::{
 
 use clap::{crate_name, crate_version, App, Arg};
 use log::LevelFilter;
-use noodles_fpkm::{calculate_fpkms, counts::read_counts, features::read_features, Fpkms};
+use noodles_fpkm::{
+    calculate_fpkms, calculate_tpms, counts::read_counts, features::read_features, Expressions,
+};
 
-fn write_fpkms<W>(mut writer: W, fpkms: &Fpkms) -> io::Result<()>
+fn write_expressions<W>(mut writer: W, expressions: &Expressions) -> io::Result<()>
 where
     W: Write,
 {
-    for (id, fpkm) in fpkms {
-        writeln!(writer, "{}\t{}", id, fpkm)?;
+    for (id, value) in expressions {
+        writeln!(writer, "{}\t{}", id, value)?;
     }
 
     Ok(())
@@ -44,6 +46,15 @@ fn main() {
                 .default_value("gene_id"),
         )
         .arg(
+            Arg::with_name("method")
+                .short("m")
+                .long("method")
+                .value_name("str")
+                .help("Normalization method")
+                .default_value("fpkm")
+                .possible_values(&["fpkm", "tpm"]),
+        )
+        .arg(
             Arg::with_name("annotations")
                 .short("a")
                 .long("annotations")
@@ -71,17 +82,22 @@ fn main() {
     let annotations_src = matches.value_of("annotations").unwrap();
     let feature_type = matches.value_of("feature-type").unwrap();
     let feature_id = matches.value_of("feature-id").unwrap();
+    let unit = matches.value_of("unit").unwrap();
 
     let features = read_features(annotations_src, feature_type, feature_id).unwrap();
 
     let file = File::open(&counts_src).unwrap();
     let counts = read_counts(file).unwrap();
 
-    let fpkms = calculate_fpkms(&counts, &features).unwrap();
+    let fpkms = match unit {
+        "fpkm" => calculate_fpkms(&counts, &features).unwrap(),
+        "tpm" => calculate_tpms(&counts, &features).unwrap(),
+        _ => unreachable!(),
+    };
 
     let stdout = io::stdout();
     let handle = stdout.lock();
-    write_fpkms(handle, &fpkms).unwrap();
+    write_expressions(handle, &fpkms).unwrap();
 }
 
 #[cfg(test)]
@@ -89,7 +105,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_write_fpkms() {
+    fn test_write_expressions() {
         let fpkms = [
             (String::from("AAAS"), 5825.440538780093),
             (String::from("AC009952.3"), 10.494073576888187),
@@ -101,7 +117,7 @@ mod tests {
         .collect();
 
         let mut buf = Vec::new();
-        write_fpkms(&mut buf, &fpkms).unwrap();
+        write_expressions(&mut buf, &fpkms).unwrap();
 
         let actual = String::from_utf8(buf).unwrap();
         let expected = "\

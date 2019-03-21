@@ -1,7 +1,7 @@
 pub mod counts;
 pub mod features;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use self::{
     counts::{sum_counts, Counts},
@@ -13,9 +13,9 @@ pub enum Error {
     MissingFeature(String),
 }
 
-pub type Fpkms = BTreeMap<String, f64>;
+pub type Expressions = BTreeMap<String, f64>;
 
-pub fn calculate_fpkms(counts: &Counts, features: &Features) -> Result<Fpkms, Error> {
+pub fn calculate_fpkms(counts: &Counts, features: &Features) -> Result<Expressions, Error> {
     let counts_sum = sum_counts(counts);
 
     counts
@@ -40,6 +40,35 @@ fn sum_nonoverlapping_interval_lengths(intervals: &[Feature]) -> u64 {
 // See <https://haroldpimentel.wordpress.com/2014/05/08/what-the-fpkm-a-review-rna-seq-expression-units/>.
 fn calculate_fpkm(count: u64, len: u64, counts_sum: u64) -> f64 {
     (count as f64 * 1e9) / (len as f64 * counts_sum as f64)
+}
+
+pub fn calculate_tpms(counts: &Counts, features: &Features) -> Result<Expressions, Error> {
+    let cpbs: HashMap<String, f64> = counts
+        .iter()
+        .map(|(name, &count)| {
+            features
+                .get(name)
+                .map(|intervals| {
+                    let len = sum_nonoverlapping_interval_lengths(intervals);
+                    let cpb = count as f64 / len as f64;
+                    (name.clone(), cpb)
+                })
+                .ok_or_else(|| Error::MissingFeature(name.clone()))
+        })
+        .collect::<Result<_, _>>()?;
+
+    let cpbs_sum = cpbs.values().sum();
+
+    let tpms = cpbs
+        .iter()
+        .map(|(name, &cpb)| (name.clone(), calculate_tpm(cpb, cpbs_sum)))
+        .collect();
+
+    Ok(tpms)
+}
+
+fn calculate_tpm(cpb: f64, cpbs_sum: f64) -> f64 {
+    cpb * 1e6 / cpbs_sum
 }
 
 #[cfg(test)]
@@ -148,6 +177,17 @@ mod tests {
 
         let a = calculate_fpkm(5, 138756, 600081);
         let b = 0.06004935631747696;
+        assert!((a - b).abs() < EPSILON);
+    }
+
+    #[test]
+    fn test_calculate_tpm() {
+        let a = calculate_tpm(2.0, 10.0);
+        let b = 200000.0;
+        assert!((a - b).abs() < EPSILON);
+
+        let a = dbg!(calculate_tpm(0.0010, 26.65));
+        let b = 37.5234521575985;
         assert!((a - b).abs() < EPSILON);
     }
 }
