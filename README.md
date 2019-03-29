@@ -74,3 +74,8 @@ $ noodles-fpkm \
 
 [noodles-count-features]: https://github.com/zaeleus/noodles-count-features
 [htseq-count]: https://htseq.readthedocs.io/en/release_0.11.1/count.html
+
+## References
+
+  * Wagner, G.P., Kin, K. & Lynch, V.J. Theory Biosci. (2012) 131: 281.
+    https://doi.org/10.1007/s12064-012-0162-3

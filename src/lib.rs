@@ -37,7 +37,6 @@ fn sum_nonoverlapping_interval_lengths(intervals: &[Feature]) -> u64 {
     merge_intervals(intervals).iter().map(|i| i.len()).sum()
 }
 
-// See <https://haroldpimentel.wordpress.com/2014/05/08/what-the-fpkm-a-review-rna-seq-expression-units/>.
 fn calculate_fpkm(count: u64, len: u64, counts_sum: u64) -> f64 {
     (count as f64 * 1e9) / (len as f64 * counts_sum as f64)
 }
