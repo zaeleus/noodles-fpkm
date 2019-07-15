@@ -46,11 +46,11 @@ fn main() {
                 .default_value("gene_id"),
         )
         .arg(
-            Arg::with_name("method")
-                .short("m")
-                .long("method")
+            Arg::with_name("unit")
+                .short("u")
+                .long("unit")
                 .value_name("str")
-                .help("Normalization method")
+                .help("Unit of expression")
                 .default_value("fpkm")
                 .possible_values(&["fpkm", "tpm"]),
         )
