@@ -51,7 +51,7 @@ fn main() {
                 .long("unit")
                 .value_name("str")
                 .help("Unit of expression")
-                .default_value("fpkm")
+                .default_value("tpm")
                 .possible_values(&["fpkm", "tpm"]),
         )
         .arg(
