@@ -1,3 +1,10 @@
+**Deprecation notice**: noodles-fpkm was merged into [noodles-squab]. Use
+`noodles-squab normalize` instead.
+
+[noodles-squab]: https://github.com/zaeleus/noodles-squab
+
+---
+
 # noodles fpkm
 
 **noodles fpkm** calculates FPKM (**f**ragments **p**er **k**ilobase per
